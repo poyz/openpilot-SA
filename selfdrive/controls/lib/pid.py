@@ -68,12 +68,14 @@ class LatPIDController():
     self.control = 0
     self.errors = []
 
-  def update(self, setpoint, measurement, speed=0.0, check_saturation=True, override=False, feedforward=0., deadzone=0., freeze_integrator=False):
+  def update(self, setpoint, measurement, speed=0.0, check_saturation=True, override=False, feedforward=0., deadzone=0., freeze_integrator=False, measurement_rate=0):
     self.speed = speed
 
     error = float(apply_deadzone(setpoint - measurement, deadzone))
     self.p = error * self.k_p
     self.f = feedforward * self.k_f * (1500 / self.op_params.get('STEER_MAX')) * self.op_params.get('lat_f_multiplier')
+
+    approaching_setpoint = (error > 0 and measurement_rate > 0) or (error < 0 and measurement_rate < 0)
 
     d = 0
     if len(self.errors) >= 5:  # makes sure list is long enough
@@ -84,7 +86,11 @@ class LatPIDController():
       self.i -= self.i_unwind_rate * float(np.sign(self.i))
     else:
       i = self.i + error * self.k_i * self.i_rate
-      control = self.p + self.f + i + d
+      control = self.p + self.f + i
+      if approaching_setpoint:  # if approaching the set point we want to wind down integral
+        i += d  # todo: should we apply different tuning to derivative based on what we're doing?
+      else:  # else we apply derivative as normal
+        control += d
 
       if self.convert is not None:
         control = self.convert(control, speed=self.speed)
@@ -93,10 +99,13 @@ class LatPIDController():
       # or when i will move towards the sign of the error
       if ((error >= 0 and (control <= self.pos_limit or i < 0.0)) or
           (error <= 0 and (control >= self.neg_limit or i > 0.0))) and \
-         not freeze_integrator:
+              not freeze_integrator:
         self.i = i
 
-    control = self.p + self.f + self.i + d
+    control = self.p + self.f + self.i
+    if not approaching_setpoint:
+      control += d
+
     if self.convert is not None:
       control = self.convert(control, speed=self.speed)
 
