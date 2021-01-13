@@ -304,7 +304,7 @@ class CarInterface(CarInterfaceBase):
 
     if ret.enableGasInterceptor:
       ret.gasMaxBP = [0., 19. * CV.MPH_TO_MS]
-      ret.gasMaxV = [0.2, 0.5]
+      ret.gasMaxV = [0.1, 0.5]
     else:
       ret.gasMaxBP = [0.]
       ret.gasMaxV = [0.5]
