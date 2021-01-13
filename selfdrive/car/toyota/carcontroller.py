@@ -6,6 +6,7 @@ from selfdrive.car.toyota.toyotacan import create_steer_command, create_ui_comma
                                            create_fcw_command
 from selfdrive.car.toyota.values import Ecu, CAR, STATIC_MSGS, NO_STOP_TIMER_CAR, SteerLimitParams
 from opendbc.can.packer import CANPacker
+from selfdrive.config import Conversions as CV
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 
@@ -57,7 +58,7 @@ class CarController():
 
     apply_gas = clip(actuators.gas, 0., 1.)
 
-    if CS.CP.enableGasInterceptor:
+    if CS.CP.enableGasInterceptor and CS.out.vEgo < 19. * CV.MPH_TO_MS:
       # send only negative accel if interceptor is detected. otherwise, send the regular value
       # +0.06 offset to reduce ABS pump usage when OP is engaged
       apply_accel = 0.06 - actuators.brake
@@ -122,7 +123,7 @@ class CarController():
       else:
         can_sends.append(create_accel_command(self.packer, 0, pcm_cancel_cmd, False, lead))
 
-    if (frame % 2 == 0) and (CS.CP.enableGasInterceptor):
+    if frame % 2 == 0 and CS.CP.enableGasInterceptor and CS.out.vEgo < 19. * CV.MPH_TO_MS:
       # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
       # This prevents unexpected pedal range rescaling
       can_sends.append(create_gas_command(self.packer, apply_gas, frame//2))
