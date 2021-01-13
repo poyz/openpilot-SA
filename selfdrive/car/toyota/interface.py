@@ -291,7 +291,7 @@ class CarInterface(CarInterfaceBase):
 
     # min speed to enable ACC. if car can do stop and go, then set enabling speed
     # to a negative value, so it won't matter.
-    ret.minEnableSpeed = -1. if (stop_and_go or ret.enableGasInterceptor) else 19. * CV.MPH_TO_MS
+    ret.minEnableSpeed = -1. if stop_and_go else 19. * CV.MPH_TO_MS
 
     # removing the DSU disables AEB and it's considered a community maintained feature
     # intercepting the DSU is a community feature since it requires unofficial hardware
@@ -303,7 +303,7 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalTuning.kiBP = [0., 35.]
 
     if ret.enableGasInterceptor:
-      ret.gasMaxBP = [0., 19. * CV.MPH_TO_MS]
+      ret.gasMaxBP = [0., ret.minEnableSpeed]
       ret.gasMaxV = [0.1, 0.5]
     else:
       ret.gasMaxBP = [0.]
@@ -331,7 +331,7 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.invalidGiraffeToyotaDEPRECATED)
     if self.CS.low_speed_lockout and self.CP.openpilotLongitudinalControl:
       events.add(EventName.lowSpeedLockout)
-    if ret.vEgo < self.CP.minEnableSpeed and self.CP.openpilotLongitudinalControl:
+    if ret.vEgo < self.CP.minEnableSpeed and not self.CP.enableGasInterceptor and self.CP.openpilotLongitudinalControl:
       events.add(EventName.belowEngageSpeed)
       if c.actuators.gas > 0.1:
         # some margin on the actuator to not false trigger cancellation while stopping
