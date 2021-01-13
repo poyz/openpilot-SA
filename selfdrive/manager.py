@@ -81,7 +81,7 @@ def build():
 
     nproc = os.cpu_count()
     j_flag = "" if nproc is None else f"-j{nproc - 1}"
-    scons = subprocess.Popen(["scons", j_flag], cwd=BASEDIR, env=env, stderr=subprocess.PIPE)
+    scons = subprocess.Popen(["scons", "-j8"], cwd=BASEDIR, env=env, stderr=subprocess.PIPE)
 
     compile_output = []
 
