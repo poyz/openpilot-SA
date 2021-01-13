@@ -303,8 +303,8 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalTuning.kiBP = [0., 35.]
 
     if ret.enableGasInterceptor:
-      ret.gasMaxBP = [0., ret.minEnableSpeed]  # todo: this is broken if a stop and go car has a pedal
-      ret.gasMaxV = [0.1, 0.5]
+      ret.gasMaxBP = [0., ret.minEnableSpeed - 0.22352, ret.minEnableSpeed + 0.22352]
+      ret.gasMaxV = [0.1, 0.35, 0.5]
     else:
       ret.gasMaxBP = [0.]
       ret.gasMaxV = [0.5]
