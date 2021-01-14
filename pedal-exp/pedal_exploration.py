@@ -29,7 +29,7 @@ def to_signed(n, bits):
 
 
 
-BASEDIR = '/data/openpilot'
+BASEDIR = '/openpilot'
 use_dir = '{}/pedal-exp/rlogs'.format(BASEDIR)  # change to a directory of rlogs
 files = os.listdir(use_dir)
 files = [f for f in files if '.ini' not in f]
@@ -51,18 +51,18 @@ del lr
 
 for msg in tqdm(all_msgs):
   if msg.which() == 'plan':
-    last_plan = msg
+    last_plan = msg.plan
   elif msg.which() == 'carState':
-    last_car_state = msg
+    last_car_state = msg.carState
   elif msg.which() == 'controlsState':
-    last_controls_state = msg
+    last_controls_state = msg.controlsState
 
   if None in [last_plan, last_car_state, last_controls_state]:
     continue
 
-  if last_controls_state.enabled:
-    data[-1].append({'a_ego': last_car_state.aEgo})
-  elif len(data[-1]):
+  if last_controls_state.enabled and msg.which() == 'carState':
+    data[-1].append({'carstate': last_car_state, 'plan': last_plan, 'controlsstate': last_controls_state})
+  elif len(data[-1]) and msg.which() == 'carState':
     data.append([])
 
 del all_msgs
@@ -72,7 +72,41 @@ del data
 assert len(split) > 0, "Not enough valid sections of samples"
 
 print(len(split))
-print([len(i) for i in split])
+print([len(i) / 100 for i in split])
+
+data = split[3]
+v_egos = [line['carstate'].vEgo for line in data]
+v_cruises = [line['plan'].vCruise for line in data]
+a_cruises = [line['plan'].aCruise for line in data]
+v_pids = [line['controlsstate'].vPid for line in data]
+a_targets = [line['controlsstate'].aTarget for line in data]
+a_egos = [line['carstate'].aEgo for line in data]
+
+pid_p = [line['controlsstate'].upAccelCmd for line in data]
+pid_i = [line['controlsstate'].uiAccelCmd for line in data]
+pid_f = [line['controlsstate'].ufAccelCmd for line in data]
+
+plt.plot(v_egos, label='v_ego')
+# plt.plot(v_cruises, label='v_cruise')
+plt.plot(v_pids, label='v_pid')
+# plt.plot(pid_p, label='PID p')
+plt.legend()
+plt.savefig('plots/v_egos.png')
+
+
+plt.clf()
+plt.plot(a_egos, label='a_ego')
+plt.plot(a_cruises, label='a_cruise')
+plt.plot(a_targets, label='aTarget')
+# plt.plot(pid_f, label='PID f')
+plt.legend()
+plt.savefig('plots/a_egos.png')
+
+plt.clf()
+plt.plot(pid_p, label='PID p')
+plt.plot(pid_i, label='PID i')
+plt.legend()
+plt.savefig('plots/pid.png')
 
 # delays = []
 # ptps = []
