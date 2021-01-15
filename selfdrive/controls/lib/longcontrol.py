@@ -1,6 +1,6 @@
 from cereal import log
 from common.numpy_fast import clip, interp
-from selfdrive.controls.lib.pid import PIController
+from selfdrive.controls.lib.pid import LongPIController
 from common.op_params import opParams
 from selfdrive.config import Conversions as CV
 
@@ -55,11 +55,11 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
 class LongControl():
   def __init__(self, CP, compute_gb):
     self.long_control_state = LongCtrlState.off  # initialized to off
-    self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
-                            (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
-                            rate=RATE,
-                            sat_limit=0.8,
-                            convert=compute_gb)
+    self.pid = LongPIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
+                                (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
+                                rate=RATE,
+                                sat_limit=0.8,
+                                convert=compute_gb)
     self.v_pid = 0.0
     self.last_output_gb = 0.0
     self.op_params = opParams()
@@ -97,9 +97,8 @@ class LongControl():
       # Freeze the integrator so we don't accelerate to compensate, and don't allow positive acceleration
       prevent_overshoot = not CP.stoppingControl and CS.vEgo < 1.5 and v_target_future < 0.7
       deadzone = interp(v_ego_pid, CP.longitudinalTuning.deadzoneBP, CP.longitudinalTuning.deadzoneV)
-      reduce_proportional = CS.vEgo < 19 * CV.MPH_TO_MS and self.pid.p > 0
 
-      output_gb = self.pid.update(self.v_pid, v_ego_pid, speed=v_ego_pid, deadzone=deadzone, feedforward=a_target, freeze_integrator=prevent_overshoot, reduce_proportional=reduce_proportional)
+      output_gb = self.pid.update(self.v_pid, v_ego_pid, speed=v_ego_pid, deadzone=deadzone, feedforward=a_target, freeze_integrator=prevent_overshoot)
 
       if prevent_overshoot:
         output_gb = min(output_gb, 0.0)
