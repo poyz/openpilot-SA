@@ -88,6 +88,7 @@ typedef struct UIScene {
   int dfButtonStatus;
   int lsButtonStatus;
   bool mlButtonEnabled;
+  cereal::CarState::Reader car_state;
 
   float mpc_x[50];
   float mpc_y[50];
