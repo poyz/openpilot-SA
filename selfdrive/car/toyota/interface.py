@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from cereal import car
 from selfdrive.config import Conversions as CV
-from selfdrive.car.toyota.values import Ecu, ECU_FINGERPRINT, CAR, TSS2_CAR, FINGERPRINTS
+from selfdrive.car.toyota.values import Ecu, ECU_FINGERPRINT, CAR, TSS2_CAR, FINGERPRINTS, MIN_ACC_SPEED
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, is_ecu_disconnected, gen_empty_fingerprint
 from selfdrive.swaglog import cloudlog
 from selfdrive.car.interfaces import CarInterfaceBase
@@ -65,7 +65,7 @@ class CarInterface(CarInterfaceBase):
       ret.safetyParam = 54
       ret.wheelbase = 2.6924
       ret.steerRatio = 13.4  # unknown end-to-end spec
-      ret.steerActuatorDelay = 0.575
+      ret.steerActuatorDelay = 0.54
       tire_stiffness_factor = 0.6371  # hand-tune
       ret.mass = 3115. * CV.LB_TO_KG + STD_CARGO_KG
 
@@ -76,7 +76,7 @@ class CarInterface(CarInterfaceBase):
         ret.lateralTuning.pid.newKfTuned = True
       else:
         ret.lateralTuning.init('indi')
-        ret.lateralTuning.indi.innerLoopGainV = [4.0]
+        ret.lateralTuning.indi.innerLoopGainV = [3.84]
         ret.lateralTuning.indi.outerLoopGainV = [3.0]
         ret.lateralTuning.indi.timeConstantV = [0.1] if ret.hasZss else [1.0]
         ret.lateralTuning.indi.actuatorEffectivenessV = [1.0]
@@ -108,10 +108,11 @@ class CarInterface(CarInterfaceBase):
       ret.steerRatio = 17.8
       tire_stiffness_factor = 0.444  # not optimized yet
       ret.mass = 2860. * CV.LB_TO_KG + STD_CARGO_KG  # mean between normal and hybrid
-      ret.lateralTuning.pid.kpBP, ret.lateralTuning.pid.kpV = [[11, 31], [0.2, 0.15]]  # 25 to 70 mph
-      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kiV = [[11, 31], [0.001, 0.005]]
-      ret.lateralTuning.pid.kdV = [0.4]
+      ret.lateralTuning.pid.kpBP, ret.lateralTuning.pid.kpV = [[20, 31], [0.05, 0.1]]  # 45 to 70 mph
+      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kiV = [[20, 31], [0.005, 0.02]]
+      ret.lateralTuning.pid.kdBP, ret.lateralTuning.pid.kdV = [[20, 31], [0.1, 0.25]]
       ret.lateralTuning.pid.kf = 0.00006908923778520113  # full torque for 20 deg at 80mph means 0.00007818594
+      ret.steerActuatorDelay = 0.32
       ret.lateralTuning.pid.newKfTuned = True
 
     elif candidate == CAR.LEXUS_RX:
@@ -370,7 +371,7 @@ class CarInterface(CarInterfaceBase):
 
     # min speed to enable ACC. if car can do stop and go, then set enabling speed
     # to a negative value, so it won't matter.
-    ret.minEnableSpeed = -1. if (stop_and_go or ret.enableGasInterceptor) else 19. * CV.MPH_TO_MS
+    ret.minEnableSpeed = -1. if (stop_and_go or ret.enableGasInterceptor) else MIN_ACC_SPEED
 
     # removing the DSU disables AEB and it's considered a community maintained feature
     # intercepting the DSU is a community feature since it requires unofficial hardware
@@ -381,16 +382,14 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalTuning.kpBP = [0., 5., 35.]
     ret.longitudinalTuning.kiBP = [0., 35.]
 
+    ret.gasMaxBP = [0.]
+    ret.gasMaxV = [0.5]
+    ret.longitudinalTuning.kpV = [3.6, 2.4, 1.5]
+    ret.longitudinalTuning.kiV = [0.54, 0.36]
+
     if ret.enableGasInterceptor:
-      ret.gasMaxBP = [0., 9., 35]
-      ret.gasMaxV = [0.2, 0.5, 0.7]
-      ret.longitudinalTuning.kpV = [1.2, 0.8, 0.5]
-      ret.longitudinalTuning.kiV = [0.18, 0.12]
-    else:
-      ret.gasMaxBP = [0.]
-      ret.gasMaxV = [0.5]
-      ret.longitudinalTuning.kpV = [3.6, 2.4, 1.5]
-      ret.longitudinalTuning.kiV = [0.54, 0.36]
+      ret.gasMaxBP = [0., MIN_ACC_SPEED]
+      ret.gasMaxV = [0.2, 0.5]
 
     return ret
 
