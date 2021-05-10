@@ -225,7 +225,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       "Using profile: ",
       "",
       AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.none, AudibleAlert.chimeWarning1, .4, 0., 1.5),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .4, 0., 1.5),
   },
 
   'lsButtonAlert': {
